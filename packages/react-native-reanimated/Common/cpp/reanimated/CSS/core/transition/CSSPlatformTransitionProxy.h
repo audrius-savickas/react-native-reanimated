@@ -40,6 +40,10 @@ struct CSSPlatformTransitionRawEntry {
 struct CSSPlatformTransitionConfig {
   std::vector<CSSPlatformTransitionRawEntry> changedProperties;
   std::vector<std::string> removedProperties;
+
+  bool empty() const {
+    return changedProperties.empty() && removedProperties.empty();
+  }
 };
 
 using CSSCanRoutePropertyFunction = std::function<bool(const std::string &propertyName, const EasingConfig &easing)>;

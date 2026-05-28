@@ -1,13 +1,13 @@
 #pragma once
 
 #include <reanimated/CSS/configs/CSSTransitionConfig.h>
-#include <reanimated/CSS/core/transition/CSSTransition.h>
 #include <reanimated/CSS/interpolation/styles/TransitionStyleInterpolator.h>
 #include <reanimated/CSS/progress/TransitionProgressProvider.h>
 #include <reanimated/Fabric/updates/OperationsLoop.h>
 
 #include <folly/dynamic.h>
 #include <jsi/jsi.h>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -16,11 +16,13 @@ namespace reanimated::css {
 
 class CSSLoopTransition : public OperationsLoop::LoopOperation, public std::enable_shared_from_this<CSSLoopTransition> {
  public:
+  using OnUpdateCallback = std::function<void(Tag)>;
+
   CSSLoopTransition(
       Tag viewTag,
       const std::string &componentName,
       const std::shared_ptr<ViewStylesRepository> &viewStylesRepository,
-      CSSTransition::Observer &observer);
+      OnUpdateCallback onUpdate);
 
   TransitionProperties getProperties() const {
     return properties_;
@@ -52,7 +54,7 @@ class CSSLoopTransition : public OperationsLoop::LoopOperation, public std::enab
  private:
   const Tag viewTag_;
   const std::string componentName_;
-  CSSTransition::Observer &observer_;
+  OnUpdateCallback onUpdate_;
 
   TransitionProperties properties_;
   TransitionStyleInterpolator styleInterpolator_;

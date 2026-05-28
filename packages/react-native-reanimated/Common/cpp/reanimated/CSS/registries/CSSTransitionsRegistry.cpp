@@ -25,55 +25,18 @@ void CSSTransitionsRegistry::updateConfigOrRun(
     const std::shared_ptr<const ShadowNode> &shadowNode,
     CSSTransitionConfig &&config) {
   react_native_assert(UpdatesRegistryManager::isLockedByCurrentThread());
-  const auto viewTag = shadowNode->getTag();
-
-  if (!registry_.contains(viewTag)) {
-    auto transition = std::make_shared<CSSTransition>(
-        shadowNode, viewStylesRepository_, transitionObserver_, platformTransitionProxy_);
-    registry_.insert({viewTag, transition});
-  }
-
-  const auto &transition = registry_.at(viewTag);
-
-  // Split via the platform proxy: platform-routed props are handled inside
-  // CSSTransition::splitForPlatformRouting; the returned config carries only
-  // the loop-side settings + value diffs + removals.
-  auto loopConfig = transition->splitForPlatformRouting(rt, std::move(config), loop_->resolveTimestamp());
-
-  if (loopConfig.changedPropertiesSettings.size() || loopConfig.removedProperties.size()) {
-    transition->updateSettings(loopConfig.changedPropertiesSettings, loopConfig.removedProperties);
-  }
-  if (loopConfig.changedProperties.size()) {
-    runTransition(rt, transition, viewTag, loopConfig.changedProperties);
-  }
-}
-
-void CSSTransitionsRegistry::run(
-    jsi::Runtime &rt,
-    const std::shared_ptr<const ShadowNode> &shadowNode,
-    const PropertyValueDiffsMap &propertyDiffs) {
-  react_native_assert(UpdatesRegistryManager::isLockedByCurrentThread());
-  const auto viewTag = shadowNode->getTag();
-  const auto &transition = registry_.at(viewTag);
-
-  runTransition(rt, transition, viewTag, propertyDiffs);
+  const auto &transition = getOrCreateTransition(shadowNode);
+  auto initialUpdate = transition->run(rt, std::move(config), getUpdatesFromRegistry(transition->getViewTag()));
+  recordInitialUpdate(transition, initialUpdate);
 }
 
 void CSSTransitionsRegistry::run(
     const std::shared_ptr<const ShadowNode> &shadowNode,
     const PropertyValueDynamicDiffsMap &propertyDiffs) {
   react_native_assert(UpdatesRegistryManager::isLockedByCurrentThread());
-  const auto viewTag = shadowNode->getTag();
-  const auto &transition = registry_.at(viewTag);
-
-  const auto &lastUpdates = getUpdatesFromRegistry(viewTag);
-  const auto timestamp = loop_->resolveTimestamp();
-
-  auto initialUpdate = transition->run(propertyDiffs, lastUpdates, timestamp);
-
-  transition->schedule(*loop_);
-  updateInUpdatesRegistry(transition, initialUpdate);
-  updatedTags_.insert(viewTag);
+  const auto &transition = getOrCreateTransition(shadowNode);
+  auto initialUpdate = transition->run(propertyDiffs, getUpdatesFromRegistry(transition->getViewTag()));
+  recordInitialUpdate(transition, initialUpdate);
 }
 
 void CSSTransitionsRegistry::flushUpdates(UpdatesBatch &updatesBatch) {
@@ -86,7 +49,11 @@ void CSSTransitionsRegistry::flushUpdates(UpdatesBatch &updatesBatch) {
     }
 
     auto &transition = it->second;
-    const auto updates = transition->computeCurrentStyle();
+    auto *loopTransition = transition->getLoopTransition();
+    if (!loopTransition) {
+      continue;
+    }
+    const auto updates = loopTransition->computeCurrentStyle(transition->getShadowNode());
 
     if (!updates.empty()) {
       addUpdatesToBatch(transition->getShadowNodeFamily(), updates);
@@ -107,7 +74,11 @@ void CSSTransitionsRegistry::flushUpdates(UpdatesBatchAnimatedProps &updatesBatc
     }
 
     auto &transition = it->second;
-    const auto updates = transition->computeCurrentStyle();
+    auto *loopTransition = transition->getLoopTransition();
+    if (!loopTransition) {
+      continue;
+    }
+    const auto updates = loopTransition->computeCurrentStyle(transition->getShadowNode());
 
     if (!updates.empty()) {
       addRawPropsToAnimatedPropsBatch(transition->getShadowNodeFamily(), updates);
@@ -121,17 +92,15 @@ void CSSTransitionsRegistry::flushUpdates(UpdatesBatchAnimatedProps &updatesBatc
 }
 #endif
 
-CSSTransitionsRegistry::TransitionObserver::TransitionObserver(CSSTransitionsRegistry &owner) : owner_(owner) {}
-
-void CSSTransitionsRegistry::TransitionObserver::onTransitionUpdate(const Tag viewTag) {
+void CSSTransitionsRegistry::onTransitionUpdate(const Tag viewTag) {
   react_native_assert(UpdatesRegistryManager::isLockedByCurrentThread());
-  owner_.updatedTags_.insert(viewTag);
+  updatedTags_.insert(viewTag);
 }
 
 void CSSTransitionsRegistry::removeTag(const Tag viewTag) {
   const auto it = registry_.find(viewTag);
   if (it != registry_.end()) {
-    it->second->unschedule(*loop_);
+    it->second->unschedule();
   }
   removeFromUpdatesRegistry(viewTag);
   registry_.erase(viewTag);
@@ -162,19 +131,25 @@ void CSSTransitionsRegistry::updateInUpdatesRegistry(
   setInUpdatesRegistry(shadowNode->getFamilyShared(), filteredUpdates);
 }
 
-void CSSTransitionsRegistry::runTransition(
-    jsi::Runtime &rt,
+const std::shared_ptr<CSSTransition> &CSSTransitionsRegistry::getOrCreateTransition(
+    const std::shared_ptr<const ShadowNode> &shadowNode) {
+  const auto viewTag = shadowNode->getTag();
+  if (!registry_.contains(viewTag)) {
+    registry_.emplace(
+        viewTag,
+        std::make_shared<CSSTransition>(shadowNode, viewStylesRepository_, platformTransitionProxy_, loop_, *this));
+  }
+  return registry_.at(viewTag);
+}
+
+void CSSTransitionsRegistry::recordInitialUpdate(
     const std::shared_ptr<CSSTransition> &transition,
-    const facebook::react::Tag &viewTag,
-    const PropertyValueDiffsMap &propertyDiffs) {
-  const auto &lastUpdates = getUpdatesFromRegistry(viewTag);
-  const auto timestamp = loop_->resolveTimestamp();
-
-  auto initialUpdate = transition->run(rt, propertyDiffs, lastUpdates, timestamp);
-
-  transition->schedule(*loop_);
+    const folly::dynamic &initialUpdate) {
+  if (initialUpdate.empty()) {
+    return;
+  }
   updateInUpdatesRegistry(transition, initialUpdate);
-  updatedTags_.insert(viewTag);
+  updatedTags_.insert(transition->getViewTag());
 }
 
 } // namespace reanimated::css
