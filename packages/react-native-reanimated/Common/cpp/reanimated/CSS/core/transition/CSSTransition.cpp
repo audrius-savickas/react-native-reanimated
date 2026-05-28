@@ -33,7 +33,8 @@ TransitionProperties CSSTransition::getProperties() const {
   return result;
 }
 
-folly::dynamic CSSTransition::run(jsi::Runtime &rt, CSSTransitionConfig &&config, const folly::dynamic &lastUpdates) {
+folly::dynamic
+CSSTransition::applyConfig(jsi::Runtime &rt, CSSTransitionConfig &&config, const folly::dynamic &lastUpdates) {
   const auto timestamp = loop_->resolveTimestamp();
 
   // Split into platform vs loop sides; platform-routed props run immediately.

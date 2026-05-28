@@ -26,7 +26,7 @@ void CSSTransitionsRegistry::updateConfigOrRun(
     CSSTransitionConfig &&config) {
   react_native_assert(UpdatesRegistryManager::isLockedByCurrentThread());
   const auto &transition = getOrCreateTransition(shadowNode);
-  auto initialUpdate = transition->run(rt, std::move(config), getUpdatesFromRegistry(transition->getViewTag()));
+  auto initialUpdate = transition->applyConfig(rt, std::move(config), getUpdatesFromRegistry(transition->getViewTag()));
   recordInitialUpdate(transition, initialUpdate);
 }
 
@@ -92,9 +92,11 @@ void CSSTransitionsRegistry::flushUpdates(UpdatesBatchAnimatedProps &updatesBatc
 }
 #endif
 
-void CSSTransitionsRegistry::onTransitionUpdate(const Tag viewTag) {
+CSSTransitionsRegistry::TransitionObserver::TransitionObserver(CSSTransitionsRegistry &owner) : owner_(owner) {}
+
+void CSSTransitionsRegistry::TransitionObserver::onTransitionUpdate(const Tag viewTag) {
   react_native_assert(UpdatesRegistryManager::isLockedByCurrentThread());
-  updatedTags_.insert(viewTag);
+  owner_.updatedTags_.insert(viewTag);
 }
 
 void CSSTransitionsRegistry::removeTag(const Tag viewTag) {
@@ -137,7 +139,8 @@ const std::shared_ptr<CSSTransition> &CSSTransitionsRegistry::getOrCreateTransit
   if (!registry_.contains(viewTag)) {
     registry_.emplace(
         viewTag,
-        std::make_shared<CSSTransition>(shadowNode, viewStylesRepository_, platformTransitionProxy_, loop_, *this));
+        std::make_shared<CSSTransition>(
+            shadowNode, viewStylesRepository_, platformTransitionProxy_, loop_, transitionObserver_));
   }
   return registry_.at(viewTag);
 }

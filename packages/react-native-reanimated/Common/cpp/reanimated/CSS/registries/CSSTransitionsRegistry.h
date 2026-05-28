@@ -13,7 +13,7 @@
 
 namespace reanimated::css {
 
-class CSSTransitionsRegistry : public UpdatesRegistry, public CSSTransition::Observer {
+class CSSTransitionsRegistry : public UpdatesRegistry {
  public:
   CSSTransitionsRegistry(
       const std::shared_ptr<ViewStylesRepository> &viewStylesRepository,
@@ -28,9 +28,6 @@ class CSSTransitionsRegistry : public UpdatesRegistry, public CSSTransition::Obs
       CSSTransitionConfig &&config);
   void run(const std::shared_ptr<const ShadowNode> &shadowNode, const PropertyValueDynamicDiffsMap &propertyDiffs);
 
-  // CSSTransition::Observer
-  void onTransitionUpdate(Tag viewTag) override;
-
   void flushUpdates(UpdatesBatch &updatesBatch);
 #if REACT_NATIVE_VERSION_MINOR >= 85
   void flushUpdates(UpdatesBatchAnimatedProps &updatesBatch);
@@ -39,9 +36,20 @@ class CSSTransitionsRegistry : public UpdatesRegistry, public CSSTransition::Obs
  private:
   using Registry = std::unordered_map<Tag, std::shared_ptr<CSSTransition>>;
 
+  class TransitionObserver : public CSSTransition::Observer {
+   public:
+    explicit TransitionObserver(CSSTransitionsRegistry &owner);
+    void onTransitionUpdate(Tag viewTag) override;
+
+   private:
+    CSSTransitionsRegistry &owner_;
+  };
+
   const std::shared_ptr<ViewStylesRepository> viewStylesRepository_;
   const std::shared_ptr<OperationsLoop> loop_;
   const std::shared_ptr<CSSPlatformTransitionProxy> platformTransitionProxy_;
+
+  TransitionObserver transitionObserver_{*this};
 
   Registry registry_;
   // Tags reported by owned transitions between flushes.
