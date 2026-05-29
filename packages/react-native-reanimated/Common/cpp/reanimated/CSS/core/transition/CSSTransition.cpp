@@ -33,7 +33,7 @@ TransitionProperties CSSTransition::getProperties() const {
   return result;
 }
 
-PropertyValueDiffsMap CSSTransition::applyConfig(jsi::Runtime &rt, CSSTransitionConfig &&config) {
+CSSTransitionConfig CSSTransition::splitForPlatformRouting(jsi::Runtime &rt, CSSTransitionConfig &&config) {
   const auto timestamp = loop_->resolveTimestamp();
 
   // Split into platform vs loop sides; platform-routed props run immediately.
@@ -43,12 +43,15 @@ PropertyValueDiffsMap CSSTransition::applyConfig(jsi::Runtime &rt, CSSTransition
   if (!processed.platform.empty()) {
     ensurePlatformTransition().run(rt, processed.platform, timestamp);
   }
-  if (processed.loop.hasSettingsUpdates()) {
-    ensureLoopTransition().updateSettings(processed.loop.changedPropertiesSettings, processed.loop.removedProperties);
-  }
 
-  // Hand the loop-side value diffs back to the caller, which decides whether to run.
-  return std::move(processed.loop.changedProperties);
+  // Hand the loop-side config back to the caller, which applies settings / runs as needed.
+  return std::move(processed.loop);
+}
+
+void CSSTransition::updateSettings(
+    const PropertiesSettingsMap &changedPropertiesSettings,
+    const std::vector<std::string> &removedProperties) {
+  ensureLoopTransition().updateSettings(changedPropertiesSettings, removedProperties);
 }
 
 folly::dynamic
