@@ -33,7 +33,7 @@ TransitionProperties CSSTransition::getProperties() const {
   return result;
 }
 
-CSSTransitionConfig CSSTransition::splitForPlatformRouting(jsi::Runtime &rt, CSSTransitionConfig &&config) {
+CSSTransitionConfig CSSTransition::runPlatformProps(jsi::Runtime &rt, CSSTransitionConfig &&config) {
   const auto timestamp = loop_->resolveTimestamp();
 
   // Split into platform vs loop sides; platform-routed props run immediately.

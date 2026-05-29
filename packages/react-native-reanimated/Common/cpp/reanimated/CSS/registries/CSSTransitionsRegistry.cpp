@@ -27,8 +27,8 @@ void CSSTransitionsRegistry::updateConfigOrRun(
   react_native_assert(UpdatesRegistryManager::isLockedByCurrentThread());
   const auto &transition = getOrCreateTransition(shadowNode);
 
-  // Route platform props, then apply settings and run the loop side as needed.
-  auto loopConfig = transition->splitForPlatformRouting(rt, std::move(config));
+  // Run platform-routed props, then apply settings and run the loop side as needed.
+  auto loopConfig = transition->runPlatformProps(rt, std::move(config));
   if (loopConfig.hasSettingsUpdates()) {
     transition->updateSettings(loopConfig.changedPropertiesSettings, loopConfig.removedProperties);
   }

@@ -54,10 +54,10 @@ class CSSTransition {
     return loopTransition_.get();
   }
 
-  /// Splits the config via the platform proxy, running the platform-routed props
-  /// immediately, and returns the loop-side config (settings + value diffs + removals)
-  /// for the caller to feed into updateSettings / run.
-  CSSTransitionConfig splitForPlatformRouting(jsi::Runtime &rt, CSSTransitionConfig &&config);
+  /// Runs the platform-routed props from the config immediately (on the platform transition)
+  /// and returns the loop-routed config (settings + value diffs + removals) for the caller
+  /// to feed into updateSettings / run.
+  CSSTransitionConfig runPlatformProps(jsi::Runtime &rt, CSSTransitionConfig &&config);
   /// Reconfigures the loop transition's per-property settings.
   void updateSettings(
       const PropertiesSettingsMap &changedPropertiesSettings,
