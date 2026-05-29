@@ -71,7 +71,7 @@ folly::dynamic CSSTransition::run(
   return initialUpdate;
 }
 
-void CSSTransition::unschedule() {
+void CSSTransition::cancel() {
   if (loopTransition_) {
     loop_->remove(loopTransition_);
   }

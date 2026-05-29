@@ -66,9 +66,9 @@ class CSSTransition {
   folly::dynamic run(jsi::Runtime &rt, const PropertyValueDiffsMap &propertyDiffs, const folly::dynamic &lastUpdates);
   /// Loop-only run for already-computed (dynamic) diffs; used by pseudo-style state changes.
   folly::dynamic run(const PropertyValueDynamicDiffsMap &propertyDiffs, const folly::dynamic &lastUpdates);
-  /// Tears down both sides: removes the loop transition from the loop and cancels any
+  /// Cancels both sides: removes the loop transition from the loop and cancels any
   /// active platform animations.
-  void unschedule();
+  void cancel();
 
  private:
   const std::shared_ptr<const ShadowNode> shadowNode_;

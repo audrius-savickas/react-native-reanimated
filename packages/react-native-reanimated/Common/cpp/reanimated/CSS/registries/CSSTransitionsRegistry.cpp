@@ -111,7 +111,7 @@ void CSSTransitionsRegistry::TransitionObserver::onTransitionUpdate(const Tag vi
 void CSSTransitionsRegistry::removeTag(const Tag viewTag) {
   const auto it = registry_.find(viewTag);
   if (it != registry_.end()) {
-    it->second->unschedule();
+    it->second->cancel();
   }
   removeFromUpdatesRegistry(viewTag);
   registry_.erase(viewTag);
