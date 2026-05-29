@@ -33,8 +33,7 @@ TransitionProperties CSSTransition::getProperties() const {
   return result;
 }
 
-folly::dynamic
-CSSTransition::applyConfig(jsi::Runtime &rt, CSSTransitionConfig &&config, const folly::dynamic &lastUpdates) {
+PropertyValueDiffsMap CSSTransition::applyConfig(jsi::Runtime &rt, CSSTransitionConfig &&config) {
   const auto timestamp = loop_->resolveTimestamp();
 
   // Split into platform vs loop sides; platform-routed props run immediately.
@@ -44,7 +43,20 @@ CSSTransition::applyConfig(jsi::Runtime &rt, CSSTransitionConfig &&config, const
   if (!processed.platform.empty()) {
     ensurePlatformTransition().run(rt, processed.platform, timestamp);
   }
-  return runLoopSide(rt, processed.loop, lastUpdates, timestamp);
+  if (processed.loop.hasSettingsUpdates()) {
+    ensureLoopTransition().updateSettings(processed.loop.changedPropertiesSettings, processed.loop.removedProperties);
+  }
+
+  // Hand the loop-side value diffs back to the caller, which decides whether to run.
+  return std::move(processed.loop.changedProperties);
+}
+
+folly::dynamic
+CSSTransition::run(jsi::Runtime &rt, const PropertyValueDiffsMap &propertyDiffs, const folly::dynamic &lastUpdates) {
+  const auto timestamp = loop_->resolveTimestamp();
+  auto initialUpdate = ensureLoopTransition().run(rt, shadowNode_, propertyDiffs, lastUpdates, timestamp);
+  scheduleLoop(timestamp);
+  return initialUpdate;
 }
 
 folly::dynamic CSSTransition::run(
@@ -81,26 +93,6 @@ CSSLoopTransition &CSSTransition::ensureLoopTransition() {
         [&observer = observer_](Tag viewTag) { observer.onTransitionUpdate(viewTag); });
   }
   return *loopTransition_;
-}
-
-folly::dynamic CSSTransition::runLoopSide(
-    jsi::Runtime &rt,
-    const CSSTransitionConfig &loopConfig,
-    const folly::dynamic &lastUpdates,
-    const double timestamp) {
-  if (loopConfig.empty()) {
-    return folly::dynamic::object();
-  }
-  auto &loopTransition = ensureLoopTransition();
-  if (loopConfig.hasSettingsUpdates()) {
-    loopTransition.updateSettings(loopConfig.changedPropertiesSettings, loopConfig.removedProperties);
-  }
-  if (!loopConfig.hasValueUpdates()) {
-    return folly::dynamic::object();
-  }
-  auto initialUpdate = loopTransition.run(rt, shadowNode_, loopConfig.changedProperties, lastUpdates, timestamp);
-  scheduleLoop(timestamp);
-  return initialUpdate;
 }
 
 void CSSTransition::scheduleLoop(const double timestamp) {
