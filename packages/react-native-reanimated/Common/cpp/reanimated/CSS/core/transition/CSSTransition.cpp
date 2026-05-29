@@ -33,10 +33,11 @@ TransitionProperties CSSTransition::getProperties() const {
   return result;
 }
 
-CSSTransitionConfig CSSTransition::runPlatformProps(jsi::Runtime &rt, CSSTransitionConfig &&config) {
+folly::dynamic CSSTransition::run(jsi::Runtime &rt, CSSTransitionConfig &&config, const folly::dynamic &lastUpdates) {
   const auto timestamp = loop_->resolveTimestamp();
 
-  // Split into platform vs loop sides; platform-routed props run immediately.
+  // CSSTransition owns routing: platform-routed props run immediately on the platform
+  // transition; the loop-routed remainder is applied to the loop transition below.
   auto processed = platformTransitionProxy_->processConfig(std::move(config), routing_);
   routing_ = std::move(processed.routing);
 
@@ -44,20 +45,21 @@ CSSTransitionConfig CSSTransition::runPlatformProps(jsi::Runtime &rt, CSSTransit
     ensurePlatformTransition().run(rt, processed.platform, timestamp);
   }
 
-  // Hand the loop-side config back to the caller, which applies settings / runs as needed.
-  return std::move(processed.loop);
-}
+  const auto &loopConfig = processed.loop;
+  if (!loopConfig.hasSettingsUpdates() && !loopConfig.hasValueUpdates()) {
+    return folly::dynamic::object();
+  }
 
-void CSSTransition::updateSettings(
-    const PropertiesSettingsMap &changedPropertiesSettings,
-    const std::vector<std::string> &removedProperties) {
-  ensureLoopTransition().updateSettings(changedPropertiesSettings, removedProperties);
-}
+  auto &loopTransition = ensureLoopTransition();
+  if (loopConfig.hasSettingsUpdates()) {
+    loopTransition.updateSettings(loopConfig.changedPropertiesSettings, loopConfig.removedProperties);
+  }
+  // Settings-only configs reconfigure without running.
+  if (!loopConfig.hasValueUpdates()) {
+    return folly::dynamic::object();
+  }
 
-folly::dynamic
-CSSTransition::run(jsi::Runtime &rt, const PropertyValueDiffsMap &propertyDiffs, const folly::dynamic &lastUpdates) {
-  const auto timestamp = loop_->resolveTimestamp();
-  auto initialUpdate = ensureLoopTransition().run(rt, shadowNode_, propertyDiffs, lastUpdates, timestamp);
+  auto initialUpdate = loopTransition.run(rt, shadowNode_, loopConfig.changedProperties, lastUpdates, timestamp);
   scheduleLoop(timestamp);
   return initialUpdate;
 }

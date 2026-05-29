@@ -5,7 +5,6 @@
 #include <reanimated/CSS/misc/ViewStylesRepository.h>
 #include <reanimated/Fabric/updates/OperationsLoop.h>
 #include <reanimated/Fabric/updates/UpdatesRegistry.h>
-#include <reanimated/Fabric/updates/UpdatesRegistryManager.h>
 
 #include <memory>
 #include <unordered_map>
