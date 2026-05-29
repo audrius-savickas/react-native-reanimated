@@ -49,8 +49,9 @@ class CSSTransition {
 
   TransitionProperties getProperties() const;
 
-  /// Current interpolated style of the loop transition (empty if there is no loop transition).
-  folly::dynamic computeCurrentStyle();
+  /// Current loop-side (JS-driven) style; empty when there is no loop transition. Platform-routed
+  /// props are applied natively and are not included here.
+  folly::dynamic computeCurrentLoopStyle();
 
   /// Applies a config: routes props between the platform and loop sides and runs them.
   folly::dynamic run(jsi::Runtime &rt, CSSTransitionConfig &&config, const folly::dynamic &lastUpdates);

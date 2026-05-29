@@ -73,7 +73,7 @@ folly::dynamic CSSTransition::run(
   return initialUpdate;
 }
 
-folly::dynamic CSSTransition::computeCurrentStyle() {
+folly::dynamic CSSTransition::computeCurrentLoopStyle() {
   if (!loopTransition_) {
     return folly::dynamic::object();
   }
