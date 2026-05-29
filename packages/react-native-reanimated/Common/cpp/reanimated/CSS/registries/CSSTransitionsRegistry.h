@@ -21,6 +21,7 @@ class CSSTransitionsRegistry : public UpdatesRegistry {
 
   bool needsFlush() const;
 
+  // TODO: In the future we want to decouple config update and run
   void updateConfigOrRun(
       jsi::Runtime &rt,
       const std::shared_ptr<const ShadowNode> &shadowNode,

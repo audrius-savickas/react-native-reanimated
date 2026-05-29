@@ -54,16 +54,10 @@ class CSSTransition {
     return loopTransition_.get();
   }
 
-  /// Applies a config. CSSTransition owns the routing: platform-routed props run immediately
-  /// on the platform transition; loop-routed settings are reconfigured and the loop transition
-  /// runs + schedules only when the config carries value changes (settings-only configs just
-  /// reconfigure). Returns the initial loop-side update (empty for platform-only / settings-only
-  /// / no-op configs).
+  /// Applies a config: routes props between the platform and loop sides and runs them.
   folly::dynamic run(jsi::Runtime &rt, CSSTransitionConfig &&config, const folly::dynamic &lastUpdates);
-  /// Loop-only run for already-computed (dynamic) diffs; used by pseudo-style state changes.
+  /// Runs the loop side directly from already-computed (dynamic) diffs.
   folly::dynamic run(const PropertyValueDynamicDiffsMap &propertyDiffs, const folly::dynamic &lastUpdates);
-  /// Cancels both sides: removes the loop transition from the loop and cancels any
-  /// active platform animations.
   void cancel();
 
  private:
