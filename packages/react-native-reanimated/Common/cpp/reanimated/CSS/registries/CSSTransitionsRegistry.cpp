@@ -49,12 +49,7 @@ void CSSTransitionsRegistry::flushUpdates(UpdatesBatch &updatesBatch) {
     }
 
     auto &transition = it->second;
-    auto *loopTransition = transition->getLoopTransition();
-    if (!loopTransition) {
-      continue;
-    }
-    const auto updates = loopTransition->computeCurrentStyle(transition->getShadowNode());
-
+    const auto updates = transition->computeCurrentStyle();
     if (!updates.empty()) {
       addUpdatesToBatch(transition->getShadowNodeFamily(), updates);
     }
@@ -74,12 +69,7 @@ void CSSTransitionsRegistry::flushUpdates(UpdatesBatchAnimatedProps &updatesBatc
     }
 
     auto &transition = it->second;
-    auto *loopTransition = transition->getLoopTransition();
-    if (!loopTransition) {
-      continue;
-    }
-    const auto updates = loopTransition->computeCurrentStyle(transition->getShadowNode());
-
+    const auto updates = transition->computeCurrentStyle();
     if (!updates.empty()) {
       addRawPropsToAnimatedPropsBatch(transition->getShadowNodeFamily(), updates);
       // Legacy flushes merge each frame into the updates registry; animated-props flushes do not.

@@ -73,6 +73,13 @@ folly::dynamic CSSTransition::run(
   return initialUpdate;
 }
 
+folly::dynamic CSSTransition::computeCurrentStyle() {
+  if (!loopTransition_) {
+    return folly::dynamic::object();
+  }
+  return loopTransition_->computeCurrentStyle(shadowNode_);
+}
+
 void CSSTransition::cancel() {
   if (loopTransition_) {
     loop_->remove(loopTransition_);
