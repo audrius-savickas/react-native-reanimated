@@ -24,10 +24,15 @@ export default class CSSManager implements ICSSManager {
   }
 
   update(style: CSSStyle): void {
-    const [animationProperties, transitionProperties, , transitionCallbacks] =
-      filterCSSAndStyleProperties(style);
+    const [
+      animationProperties,
+      transitionProperties,
+      ,
+      animationCallbacks,
+      transitionCallbacks,
+    ] = filterCSSAndStyleProperties(style);
 
-    this.animationsManager.update(animationProperties);
+    this.animationsManager.update(animationProperties, animationCallbacks);
     this.transitionsManager.update(transitionProperties, transitionCallbacks);
   }
 
