@@ -1,6 +1,13 @@
 const path = require('path');
 
 const workletsPackageParentDir = path.resolve(__dirname, '../..');
+const reactNativeShimPath = path.join(__dirname, 'reactNativeShim.js');
+const turboModuleRegistryShimPath = path.join(
+  __dirname,
+  'turboModuleRegistryShim.js'
+);
+const turboModuleRegistryModuleName =
+  'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 const workletsPackageName = 'react-native-worklets';
 const workletsDirPath = path.join(workletsPackageName, '.worklets');
@@ -15,13 +22,30 @@ const workletsLibEntryPath = path.join(
 function bundleModeResolveRequest(
   /** @type {any} */ context,
   /** @type {string} */ moduleName,
-  /** @type {any} */ platform
+  /** @type {any} */ platform,
+  /** @type {any} */ userConfigResolveRequest
 ) {
   if (moduleName.startsWith(workletsDirPath)) {
     const fullModuleName = path.join(workletsPackageParentDir, moduleName);
     return { type: 'sourceFile', filePath: fullModuleName };
   }
-  return context.resolveRequest(context, moduleName, platform);
+  if (
+    moduleName === 'react-native' &&
+    context.originModulePath !== reactNativeShimPath
+  ) {
+    return { type: 'sourceFile', filePath: reactNativeShimPath };
+  }
+  if (
+    moduleName === turboModuleRegistryModuleName &&
+    context.originModulePath !== turboModuleRegistryShimPath
+  ) {
+    return { type: 'sourceFile', filePath: turboModuleRegistryShimPath };
+  }
+  return (userConfigResolveRequest || context.resolveRequest)(
+    context,
+    moduleName,
+    platform
+  );
 }
 
 /** Use in React Native Community projects. */
@@ -39,6 +63,18 @@ const bundleModeMetroConfig = {
         const fullModuleName = path.join(workletsPackageParentDir, moduleName);
         return { type: 'sourceFile', filePath: fullModuleName };
       }
+      if (
+        moduleName === 'react-native' &&
+        context.originModulePath !== reactNativeShimPath
+      ) {
+        return { type: 'sourceFile', filePath: reactNativeShimPath };
+      }
+      if (
+        moduleName === turboModuleRegistryModuleName &&
+        context.originModulePath !== turboModuleRegistryShimPath
+      ) {
+        return { type: 'sourceFile', filePath: turboModuleRegistryShimPath };
+      }
       return context.resolveRequest(context, moduleName, platform);
     },
   },
@@ -49,7 +85,18 @@ const bundleModeMetroConfig = {
 function getBundleModeMetroConfig(/** @type {any} */ config) {
   config.serializer.createModuleIdFactory = bundleModeCreateModuleIdFactory;
 
-  config.resolver.resolveRequest = bundleModeResolveRequest;
+  const currentResolveRequest = config?.resolver?.resolveRequest;
+  config.resolver.resolveRequest = (
+    /** @type {any} */ context,
+    /** @type {string} */ moduleName,
+    /** @type {any} */ platform
+  ) =>
+    bundleModeResolveRequest(
+      context,
+      moduleName,
+      platform,
+      currentResolveRequest
+    );
 
   const currentGetTransformOptions = config?.transformer?.getTransformOptions;
   config.transformer.getTransformOptions = async () => {
