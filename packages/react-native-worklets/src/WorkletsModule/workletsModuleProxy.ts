@@ -5,6 +5,7 @@ import type {
   SerializableRef,
   SynchronizableRef,
 } from '../memory/types';
+import type { Platform } from '../platformChecker';
 import type { WorkletRuntime } from '../types';
 
 /** Type of `__workletsModuleProxy` injected with JSI. */
@@ -211,6 +212,8 @@ export interface WorkletsModuleProxy {
   getUIRuntimeHolder(): object;
 
   getUISchedulerHolder(): object;
+
+  getPlatform(): Platform;
 
   /** @deprecated Don't use unless you have to. */
   createSerializableLEGACY<TValue>(

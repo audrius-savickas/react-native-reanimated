@@ -583,10 +583,13 @@ var require_imports = __commonJS({
       return imported.path.parentPath.node.source.value.startsWith(".");
     }
     function isAllowedForRelativeImports(filename, workletizableModules) {
-      return !!filename && (alwaysAllowed.some((module3) => filename.includes(module3)) || !!(workletizableModules === null || workletizableModules === void 0 ? void 0 : workletizableModules.some((module3) => filename.includes(module3))));
+      if (!filename) {
+        return false;
+      }
+      return alwaysAllowed.some((re) => re.test(filename)) || !!(workletizableModules === null || workletizableModules === void 0 ? void 0 : workletizableModules.some((re) => re.test(filename)));
     }
     function isWorkletizableModule(source, workletizableModules) {
-      return alwaysAllowed.some((module3) => source.startsWith(module3)) || !!(workletizableModules === null || workletizableModules === void 0 ? void 0 : workletizableModules.some((module3) => source.startsWith(module3)));
+      return alwaysAllowed.some((re) => re.test(source)) || !!(workletizableModules === null || workletizableModules === void 0 ? void 0 : workletizableModules.some((re) => re.test(source)));
     }
     function createImportPathLiteral(originalPath, state) {
       const generatedWorkletsDirPath = (0, path_1.resolve)((0, path_1.dirname)(require.resolve("react-native-worklets/package.json")), types_2.generatedWorkletsDir);
@@ -594,8 +597,8 @@ var require_imports = __commonJS({
       return (0, types_12.stringLiteral)((0, path_1.relative)(generatedWorkletsDirPath, resolved));
     }
     var alwaysAllowed = [
-      "react-native-worklets",
-      "react-native/Libraries/Core/setUpXHR"
+      /(?:^|[/\\])react-native-worklets(?:[/\\]|$)/,
+      /(?:^|[/\\])react-native[/\\]Libraries[/\\]Core[/\\]setUpXHR(?:[/\\]|$)/
       // for networking
     ];
   }

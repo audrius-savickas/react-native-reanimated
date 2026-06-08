@@ -213,7 +213,7 @@ describe('babel plugin in bundleMode', () => {
       const { files } = runPlugin(
         input,
         {},
-        { workletizableModules: ['some-library'] },
+        { workletizablePaths: ['some-library'] },
         fakeFilename
       );
       const filesDirPath = path.resolve(
@@ -238,7 +238,7 @@ describe('babel plugin in bundleMode', () => {
       const { files } = runPlugin(
         input,
         {},
-        { workletizableModules: ['some-library'] },
+        { workletizablePaths: ['some-library'] },
         fakeFilename
       );
       expect(files).toHaveLength(1);

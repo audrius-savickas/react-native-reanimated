@@ -3,7 +3,7 @@ const workletsPluginOptions = {
   strictGlobal: true,
   // Uncomment the following to enable bundle mode.
   bundleMode: true,
-  // workletizableModules: ['axios'],
+  workletizableModules: ['react-native'],
 };
 
 /** @type {import('@babel/core').TransformOptions} */
