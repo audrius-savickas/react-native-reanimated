@@ -1,18 +1,21 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { scheduleOnUI } from 'react-native-worklets';
-import { Platform } from 'react-native';
+import { Button } from 'react-native';
 
 export default function EmptyExample() {
-  scheduleOnUI(() => {
-    'worklet';
-    globalThis.__fbBatchedBridgeConfig = () => () => ({});
-
-    // require('react-native');
-  });
   return (
     <View style={styles.container}>
       <Text>Hello world!</Text>
+      <Button
+        title="Log platform"
+        onPress={() => {
+          scheduleOnUI(() => {
+            'worklet';
+            require('react-native').Platform;
+          });
+        }}
+      />
     </View>
   );
 }

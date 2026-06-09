@@ -13,7 +13,6 @@ import type {
   SynchronizableRef,
 } from '../memory/types';
 import { installValueUnpacker } from '../memory/valueUnpacker';
-import type { Platform } from '../platformChecker';
 import { isRNRuntime } from '../runtimeKind';
 import { WorkletsTurboModule } from '../specs';
 import type { WorkletFunction, WorkletRuntime } from '../types';
@@ -391,10 +390,6 @@ See https://docs.swmansion.com/react-native-worklets/docs/guides/troubleshooting
 
   toggleSlowAnimationsOnUIRuntime(): boolean {
     return WorkletsTurboModule?.toggleSlowAnimationsOnUIRuntime() ?? false;
-  }
-
-  getPlatform(): Platform {
-    return this.#workletsModuleProxy.getPlatform();
   }
 }
 

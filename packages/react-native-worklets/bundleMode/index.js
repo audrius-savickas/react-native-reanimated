@@ -8,6 +8,20 @@ const turboModuleRegistryShimPath = path.join(
 );
 const turboModuleRegistryModuleName =
   'react-native/Libraries/TurboModule/TurboModuleRegistry';
+const turboModuleRegistryFileSuffix = path.join(
+  'react-native',
+  'Libraries',
+  'TurboModule',
+  'TurboModuleRegistry.js'
+);
+
+function isResolvedTurboModuleRegistry(/** @type {any} */ result) {
+  return (
+    result?.type === 'sourceFile' &&
+    typeof result.filePath === 'string' &&
+    result.filePath.endsWith(turboModuleRegistryFileSuffix)
+  );
+}
 
 const workletsPackageName = 'react-native-worklets';
 const workletsDirPath = path.join(workletsPackageName, '.worklets');
@@ -41,11 +55,18 @@ function bundleModeResolveRequest(
   ) {
     return { type: 'sourceFile', filePath: turboModuleRegistryShimPath };
   }
-  return (userConfigResolveRequest || context.resolveRequest)(
+  const resolved = (userConfigResolveRequest || context.resolveRequest)(
     context,
     moduleName,
     platform
   );
+  if (
+    context.originModulePath !== turboModuleRegistryShimPath &&
+    isResolvedTurboModuleRegistry(resolved)
+  ) {
+    return { type: 'sourceFile', filePath: turboModuleRegistryShimPath };
+  }
+  return resolved;
 }
 
 /** Use in React Native Community projects. */
@@ -75,7 +96,14 @@ const bundleModeMetroConfig = {
       ) {
         return { type: 'sourceFile', filePath: turboModuleRegistryShimPath };
       }
-      return context.resolveRequest(context, moduleName, platform);
+      const resolved = context.resolveRequest(context, moduleName, platform);
+      if (
+        context.originModulePath !== turboModuleRegistryShimPath &&
+        isResolvedTurboModuleRegistry(resolved)
+      ) {
+        return { type: 'sourceFile', filePath: turboModuleRegistryShimPath };
+      }
+      return resolved;
     },
   },
 };

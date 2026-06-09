@@ -725,19 +725,6 @@ jsi::Object JSIWorkletsModuleProxy::toOptimizedObject(jsi::Runtime &rt) const {
         return jsi::Value(std::move(obj));
       });
 
-  jsi_utils::addMethod<0>(rt, obj, "getPlatform", [](jsi::Runtime &rt, const jsi::Value &) {
-#if defined(__ANDROID__)
-    constexpr auto platform = "android";
-#elif defined(TARGET_OS_IOS)
-    constexpr auto platform = "ios";
-#elif defined(TARGET_OS_OSX)
-    constexpr auto platform = "macos";
-#else
-    constexpr auto platform = "unknown";
-#endif
-    return jsi::String::createFromUtf8(rt, platform);
-  });
-
   /* #region deprecated */
 
   jsi_utils::addMethod<2>(

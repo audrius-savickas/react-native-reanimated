@@ -569,7 +569,7 @@ var require_imports = __commonJS({
           var _a;
           if (nodePath.get("callee").isIdentifier({ name: "require" }) && ((_a = nodePath.get("arguments")[0]) === null || _a === void 0 ? void 0 : _a.isStringLiteral())) {
             const requiredModule = nodePath.get("arguments")[0];
-            if (requiredModule.node.value.startsWith(".") && isAllowedForRelativeImports(state.file.opts.filename || "", state.opts.workletizableModules)) {
+            if (requiredModule.node.value.startsWith(".") && isAllowedForRelativeImports(state.file.opts.filename || "", state.opts.workletizablePaths)) {
               requiredModule.replaceWith(createImportPathLiteral(requiredModule.node.value, state));
             }
           }
@@ -582,25 +582,39 @@ var require_imports = __commonJS({
     function isImportRelative(imported) {
       return imported.path.parentPath.node.source.value.startsWith(".");
     }
-    function isAllowedForRelativeImports(filename, workletizableModules) {
-      if (!filename) {
-        return false;
-      }
-      return alwaysAllowed.some((re) => re.test(filename)) || !!(workletizableModules === null || workletizableModules === void 0 ? void 0 : workletizableModules.some((re) => re.test(filename)));
+    function isAllowedForRelativeImports(filename, workletizablePaths) {
+      return !!filename && (alwaysAllowedPaths.some((allowedPath) => matchesFilenameSegment(filename, allowedPath)) || !!(workletizablePaths === null || workletizablePaths === void 0 ? void 0 : workletizablePaths.some((allowedPath) => matchesFilenameSegment(filename, allowedPath))));
     }
     function isWorkletizableModule(source, workletizableModules) {
-      return alwaysAllowed.some((re) => re.test(source)) || !!(workletizableModules === null || workletizableModules === void 0 ? void 0 : workletizableModules.some((re) => re.test(source)));
+      if (source === alwaysAllowedPackages || source.startsWith(alwaysAllowedPackages + "/")) {
+        return true;
+      }
+      return !!(workletizableModules === null || workletizableModules === void 0 ? void 0 : workletizableModules.some((module3) => matchesSourcePackage(source, module3)));
+    }
+    function matchesSourcePackage(source, allowedPath) {
+      return source === allowedPath || source.startsWith(allowedPath + "/");
+    }
+    function matchesFilenameSegment(filename, allowedPath) {
+      const pkgSegments = allowedPath.split(path_1.posix.sep);
+      let fileSegments = filename.split(path_1.sep);
+      const lastNodeModules = fileSegments.lastIndexOf("node_modules");
+      if (lastNodeModules !== -1) {
+        fileSegments = fileSegments.slice(lastNodeModules + 1);
+      }
+      for (let i = 0; i <= fileSegments.length - pkgSegments.length; i++) {
+        if (pkgSegments.every((segment, segmentIndex) => fileSegments[i + segmentIndex] === segment)) {
+          return true;
+        }
+      }
+      return false;
     }
     function createImportPathLiteral(originalPath, state) {
       const generatedWorkletsDirPath = (0, path_1.resolve)((0, path_1.dirname)(require.resolve("react-native-worklets/package.json")), types_2.generatedWorkletsDir);
       const resolved = (0, path_1.resolve)((0, path_1.dirname)(state.file.opts.filename), originalPath);
       return (0, types_12.stringLiteral)((0, path_1.relative)(generatedWorkletsDirPath, resolved));
     }
-    var alwaysAllowed = [
-      /(?:^|[/\\])react-native-worklets(?:[/\\]|$)/,
-      /(?:^|[/\\])react-native[/\\]Libraries[/\\]Core[/\\]setUpXHR(?:[/\\]|$)/
-      // for networking
-    ];
+    var alwaysAllowedPaths = ["react-native-worklets"];
+    var alwaysAllowedPackages = "react-native/Libraries/Core/setUpXHR";
   }
 });
 
@@ -659,7 +673,7 @@ var require_closure = __commonJS({
             scope = scope.parent;
           }
           if (state.opts.bundleMode && (0, imports_1.isImport)(binding)) {
-            if ((0, imports_1.isImportRelative)(binding) && (0, imports_1.isAllowedForRelativeImports)(state.filename, state.opts.workletizableModules)) {
+            if ((0, imports_1.isImportRelative)(binding) && (0, imports_1.isAllowedForRelativeImports)(state.filename, state.opts.workletizablePaths)) {
               capturedNames.add(name);
               relativeBindingsToImport.add(binding);
               return;

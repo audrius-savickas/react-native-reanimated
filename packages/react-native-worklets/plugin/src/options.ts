@@ -127,9 +127,8 @@ export interface PluginOptions {
    * in the [Bundle
    * Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode).
    *
-   * Matched against import sources as a **whole package name** — e.g.
-   * `'react-native'` matches `import x from 'react-native'` and `import x from
-   * 'react-native/Foo'`, but **not** `'react-native-reanimated'`.
+   * Visit the documentation for more details and examples of how to use this
+   * option.
    *
    * {@link https://docs.swmansion.com/react-native-worklets/docs/worklets-babel-plugin/plugin-options#workletizablemodules}
    *
@@ -143,11 +142,8 @@ export interface PluginOptions {
    * the [Bundle
    * Mode](https://docs.swmansion.com/react-native-worklets/docs/bundleMode).
    *
-   * Each entry is matched as a consecutive segment in the file's absolute path
-   * — e.g. `'react-native'` matches any file inside a `react-native` directory
-   * (such as `node_modules/react-native/Libraries/Foo.js`), but **not** files
-   * in a sibling `react-native-reanimated` directory. Scoped names like
-   * `'@scope/name'` also work.
+   * Visiting the documentation for more details and examples of how to use this
+   * option.
    *
    * {@link https://docs.swmansion.com/react-native-worklets/docs/worklets-babel-plugin/plugin-options#workletizablepaths}
    *

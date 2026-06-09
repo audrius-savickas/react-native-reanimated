@@ -51,7 +51,6 @@ export type {
   Synchronizable,
   SynchronizableRef,
 } from './memory/types';
-export { getPlatform } from './platformChecker';
 export {
   getRuntimeKind,
   isRNRuntime,
