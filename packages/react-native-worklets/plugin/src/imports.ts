@@ -112,5 +112,8 @@ export function createImportPathLiteral(
   );
 
   const resolved = resolve(dirname(state.file.opts.filename!), originalPath);
-  return stringLiteral(relative(generatedWorkletsDirPath, resolved));
+  const relativePath = relative(generatedWorkletsDirPath, resolved);
+  return stringLiteral(
+    sep === '/' ? relativePath : relativePath.split(sep).join('/')
+  );
 }

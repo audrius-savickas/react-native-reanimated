@@ -405,12 +405,19 @@ var require_utils = __commonJS({
 var require_globals = __commonJS({
   "lib/globals.js"(exports2) {
     "use strict";
+    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.globals = exports2.defaultGlobals = void 0;
     exports2.initializeState = initializeState;
+    exports2.isGeneratedWorkletFile = isGeneratedWorkletFile;
     exports2.initializeGlobals = initializeGlobals;
     exports2.initializeAlwaysAllowed = initializeAlwaysAllowed;
     exports2.addCustomGlobals = addCustomGlobals;
+    var path_1 = __importDefault(require("path"));
+    var autoworkletization_12 = require_autoworkletization();
+    var types_12 = require_types();
     var notCapturedIdentifiers = [
       // Based on https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects
       // Note that objects' properties don't need to be listed since we always only capture the whole object,
@@ -527,13 +534,34 @@ var require_globals = __commonJS({
       "_WORKLET"
     ];
     function initializeState(state) {
+      state.skipFile = isGeneratedWorkletFile(state.file.opts.filename);
+      if (state.skipFile) {
+        return;
+      }
       state.workletNumber = 1;
       state.classesToWorkletize = [];
+      state.autoworkletizationPlugin = {
+        name: "worklets-autoworkletization",
+        visitor: {
+          CallExpression: {
+            enter(nodePath) {
+              (0, autoworkletization_12.processCalleesAutoworkletizableCallbacks)(nodePath, state);
+            }
+          }
+        }
+      };
       if (!state.opts.strictGlobal) {
         initializeGlobals();
         addCustomGlobals(state);
       }
       initializeAlwaysAllowed(state);
+    }
+    function isGeneratedWorkletFile(filename) {
+      if (!filename) {
+        return false;
+      }
+      const generatedWorkletsDirPath = path_1.default.join("react-native-worklets", types_12.generatedWorkletsDir);
+      return filename.includes(generatedWorkletsDirPath);
     }
     exports2.defaultGlobals = new Set(notCapturedIdentifiers);
     function initializeGlobals() {
@@ -623,7 +651,8 @@ var require_imports = __commonJS({
     function createImportPathLiteral(originalPath, state) {
       const generatedWorkletsDirPath = (0, path_1.resolve)((0, path_1.dirname)(require.resolve("react-native-worklets/package.json")), types_2.generatedWorkletsDir);
       const resolved = (0, path_1.resolve)((0, path_1.dirname)(state.file.opts.filename), originalPath);
-      return (0, types_12.stringLiteral)((0, path_1.relative)(generatedWorkletsDirPath, resolved));
+      const relativePath = (0, path_1.relative)(generatedWorkletsDirPath, resolved);
+      return (0, types_12.stringLiteral)(path_1.sep === "/" ? relativePath : relativePath.split(path_1.sep).join("/"));
     }
   }
 });
@@ -734,7 +763,7 @@ var require_generate = __commonJS({
       const transformedProg = (_a = (0, core_1.transformFromAstSync)(newProg, void 0, {
         filename: state.file.opts.filename,
         presets: ["@babel/preset-typescript"],
-        plugins: [],
+        plugins: [state.autoworkletizationPlugin],
         ast: false,
         babelrc: false,
         configFile: false,
@@ -1031,8 +1060,9 @@ var require_workletFactory = __commonJS({
         let location = state.file.opts.filename;
         if (state.opts.relativeSourceLocation) {
           location = (0, path_1.relative)(state.cwd, location);
-          sourceMapString = sourceMapString === null || sourceMapString === void 0 ? void 0 : sourceMapString.replace(state.file.opts.filename, location);
+          sourceMapString = sourceMapString === null || sourceMapString === void 0 ? void 0 : sourceMapString.replace(toPosix(state.file.opts.filename), toPosix(location));
         }
+        location = toPosix(location);
         initDataObjectExpression.properties.push((0, types_12.objectProperty)((0, types_12.identifier)("location"), (0, types_12.stringLiteral)(location)));
       }
       if (sourceMapString) {
@@ -1141,7 +1171,7 @@ var require_workletFactory = __commonJS({
       if (state.file.opts.filename) {
         const filepath = state.file.opts.filename;
         source = (0, path_1.basename)(filepath);
-        const splitFilepath = filepath.split("/");
+        const splitFilepath = filepath.split(/[\\/]/);
         const nodeModulesIndex = splitFilepath.indexOf("node_modules");
         if (nodeModulesIndex !== -1) {
           const libraryName = splitFilepath[nodeModulesIndex + 1];
@@ -1158,6 +1188,9 @@ var require_workletFactory = __commonJS({
       const workletName = reactName ? (0, types_12.toIdentifier)(`${reactName}_${suffix}`) : (0, types_12.toIdentifier)(suffix);
       reactName = reactName || (0, types_12.toIdentifier)(suffix);
       return { workletName, reactName };
+    }
+    function toPosix(p) {
+      return path_1.sep === "/" ? p : p.split(path_1.sep).join("/");
     }
     var extraPlugins = [
       require.resolve("@babel/plugin-transform-shorthand-properties"),
@@ -1911,7 +1944,10 @@ var types_1 = require_types();
 var webOptimization_1 = require_webOptimization();
 var workletSubstitution_1 = require_workletSubstitution();
 module.exports = function WorkletsBabelPlugin() {
-  function runWithTaggedExceptions(fun) {
+  function runWithTaggedExceptions(state, fun) {
+    if (state.skipFile) {
+      return;
+    }
     try {
       fun();
     } catch (e) {
@@ -1924,14 +1960,14 @@ module.exports = function WorkletsBabelPlugin() {
   return {
     name: "worklets",
     pre() {
-      runWithTaggedExceptions(() => {
+      runWithTaggedExceptions(this, () => {
         (0, globals_1.initializeState)(this);
       });
     },
     visitor: {
       CallExpression: {
         enter(path, state) {
-          runWithTaggedExceptions(() => {
+          runWithTaggedExceptions(state, () => {
             (0, autoworkletization_1.processCalleesAutoworkletizableCallbacks)(path, state);
             if (state.opts.substituteWebPlatformChecks) {
               (0, webOptimization_1.substituteWebCallExpression)(path);
@@ -1941,19 +1977,19 @@ module.exports = function WorkletsBabelPlugin() {
       },
       [types_1.WorkletizableFunction]: {
         enter(path, state) {
-          runWithTaggedExceptions(() => (0, workletSubstitution_1.processIfWithWorkletDirective)(path, state) || (0, autoworkletization_1.processIfAutoworkletizableCallback)(path, state));
+          runWithTaggedExceptions(state, () => (0, workletSubstitution_1.processIfWithWorkletDirective)(path, state) || (0, autoworkletization_1.processIfAutoworkletizableCallback)(path, state));
         }
       },
       ObjectExpression: {
         enter(path, state) {
-          runWithTaggedExceptions(() => {
+          runWithTaggedExceptions(state, () => {
             (0, contextObject_1.processIfWorkletContextObject)(path, state);
           });
         }
       },
       ClassDeclaration: {
         enter(path, state) {
-          runWithTaggedExceptions(() => {
+          runWithTaggedExceptions(state, () => {
             if (state.opts.disableWorkletClasses) {
               return;
             }
@@ -1963,21 +1999,21 @@ module.exports = function WorkletsBabelPlugin() {
       },
       Program: {
         enter(path, state) {
-          runWithTaggedExceptions(() => {
+          runWithTaggedExceptions(state, () => {
             (0, file_1.processIfWorkletFile)(path, state);
           });
         }
       },
       ExpressionStatement: {
         enter(path, state) {
-          runWithTaggedExceptions(() => {
+          runWithTaggedExceptions(state, () => {
             (0, bundleMode_1.toggleBundleMode)(path, state);
           });
         }
       },
       JSXAttribute: {
         enter(path, state) {
-          runWithTaggedExceptions(() => (0, inlineStylesWarning_1.processInlineStylesWarning)(path, state));
+          runWithTaggedExceptions(state, () => (0, inlineStylesWarning_1.processInlineStylesWarning)(path, state));
         }
       }
     }

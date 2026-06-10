@@ -25,9 +25,13 @@ function isResolvedTurboModuleRegistry(/** @type {any} */ result) {
 }
 
 const workletsPackageName = 'react-native-worklets';
-const workletsDirPath = path.join(workletsPackageName, '.worklets');
-const workletsSrcEntryPath = path.join(workletsPackageName, 'src', 'index.ts');
-const workletsLibEntryPath = path.join(
+const workletsDirPath = path.posix.join(workletsPackageName, '.worklets');
+const workletsSrcEntryPath = path.posix.join(
+  workletsPackageName,
+  'src',
+  'index.ts'
+);
+const workletsLibEntryPath = path.posix.join(
   workletsPackageName,
   'lib',
   'module',
