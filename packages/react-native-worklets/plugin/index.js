@@ -409,6 +409,7 @@ var require_globals = __commonJS({
     exports2.globals = exports2.defaultGlobals = void 0;
     exports2.initializeState = initializeState;
     exports2.initializeGlobals = initializeGlobals;
+    exports2.initializeAlwaysAllowed = initializeAlwaysAllowed;
     exports2.addCustomGlobals = addCustomGlobals;
     var notCapturedIdentifiers = [
       // Based on https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects
@@ -532,10 +533,24 @@ var require_globals = __commonJS({
         initializeGlobals();
         addCustomGlobals(state);
       }
+      initializeAlwaysAllowed(state);
     }
     exports2.defaultGlobals = new Set(notCapturedIdentifiers);
     function initializeGlobals() {
       exports2.globals = new Set(exports2.defaultGlobals);
+    }
+    var defaultAllowedPaths = ["react-native-worklets"];
+    var defaultAllowedModules = ["react-native/Libraries/Core/setUpXHR"];
+    function initializeAlwaysAllowed(state) {
+      var _a, _b;
+      state.opts.workletizablePaths = [
+        ...defaultAllowedPaths,
+        ...(_a = state.opts.workletizablePaths) !== null && _a !== void 0 ? _a : []
+      ];
+      state.opts.workletizableModules = [
+        ...defaultAllowedModules,
+        ...(_b = state.opts.workletizableModules) !== null && _b !== void 0 ? _b : []
+      ];
     }
     function addCustomGlobals(state) {
       if (state.opts && Array.isArray(state.opts.globals)) {
@@ -583,12 +598,9 @@ var require_imports = __commonJS({
       return imported.path.parentPath.node.source.value.startsWith(".");
     }
     function isAllowedForRelativeImports(filename, workletizablePaths) {
-      return !!filename && (alwaysAllowedPaths.some((allowedPath) => matchesFilenameSegment(filename, allowedPath)) || !!(workletizablePaths === null || workletizablePaths === void 0 ? void 0 : workletizablePaths.some((allowedPath) => matchesFilenameSegment(filename, allowedPath))));
+      return !!filename && !!(workletizablePaths === null || workletizablePaths === void 0 ? void 0 : workletizablePaths.some((allowedPath) => matchesFilenameSegment(filename, allowedPath)));
     }
     function isWorkletizableModule(source, workletizableModules) {
-      if (source === alwaysAllowedPackages || source.startsWith(alwaysAllowedPackages + "/")) {
-        return true;
-      }
       return !!(workletizableModules === null || workletizableModules === void 0 ? void 0 : workletizableModules.some((module3) => matchesSourcePackage(source, module3)));
     }
     function matchesSourcePackage(source, allowedPath) {
@@ -613,8 +625,6 @@ var require_imports = __commonJS({
       const resolved = (0, path_1.resolve)((0, path_1.dirname)(state.file.opts.filename), originalPath);
       return (0, types_12.stringLiteral)((0, path_1.relative)(generatedWorkletsDirPath, resolved));
     }
-    var alwaysAllowedPaths = ["react-native-worklets"];
-    var alwaysAllowedPackages = "react-native/Libraries/Core/setUpXHR";
   }
 });
 

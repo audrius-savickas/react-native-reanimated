@@ -1,9 +1,10 @@
 const path = require('path');
 
 const workletsPackageParentDir = path.resolve(__dirname, '../..');
-const reactNativeShimPath = path.join(__dirname, 'reactNativeShim.js');
+const reactNativeShimPath = path.join(__dirname, 'shims', 'reactNativeShim.js');
 const turboModuleRegistryShimPath = path.join(
   __dirname,
+  'shims',
   'turboModuleRegistryShim.js'
 );
 const turboModuleRegistryModuleName =

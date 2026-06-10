@@ -74,8 +74,15 @@ export default function RuntimeTestsExample() {
             require('./tests/runtimes/runOnRuntimeAsyncWithId.test');
             require('./tests/runtimes/runOnRuntimeSyncWithId.test');
             require('./tests/runtimes/scheduleOnRuntimeWithId.test');
-            require('./tests/runtimes/reactNativeImportShim.test');
           },
+        },
+        {
+          testSuiteName: 'bundle mode core',
+          importTest: () => {
+            require('./tests/runtimes/reactNativeImportShim.test');
+            require('./tests/runtimes/turboModuleRegistryShim.test');
+          },
+          disabled: !globalThis._WORKLETS_BUNDLE_MODE_ENABLED,
         },
         {
           testSuiteName: 'run loop',

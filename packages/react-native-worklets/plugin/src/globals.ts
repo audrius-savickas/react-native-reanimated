@@ -140,6 +140,8 @@ export function initializeState(state: WorkletsPluginPass) {
     initializeGlobals();
     addCustomGlobals(state);
   }
+
+  initializeAlwaysAllowed(state);
 }
 
 export const defaultGlobals = new Set(notCapturedIdentifiers);
@@ -148,6 +150,20 @@ export let globals: Set<string>;
 
 export function initializeGlobals() {
   globals = new Set(defaultGlobals);
+}
+
+const defaultAllowedPaths = ['react-native-worklets'];
+const defaultAllowedModules = ['react-native/Libraries/Core/setUpXHR'];
+
+export function initializeAlwaysAllowed(state: WorkletsPluginPass) {
+  state.opts.workletizablePaths = [
+    ...defaultAllowedPaths,
+    ...(state.opts.workletizablePaths ?? []),
+  ];
+  state.opts.workletizableModules = [
+    ...defaultAllowedModules,
+    ...(state.opts.workletizableModules ?? []),
+  ];
 }
 
 /**

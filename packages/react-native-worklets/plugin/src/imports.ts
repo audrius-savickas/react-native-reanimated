@@ -61,12 +61,9 @@ export function isAllowedForRelativeImports(
 ): boolean {
   return (
     !!filename &&
-    (alwaysAllowedPaths.some((allowedPath) =>
+    !!workletizablePaths?.some((allowedPath) =>
       matchesFilenameSegment(filename, allowedPath)
-    ) ||
-      !!workletizablePaths?.some((allowedPath) =>
-        matchesFilenameSegment(filename, allowedPath)
-      ))
+    )
   );
 }
 
@@ -74,12 +71,6 @@ export function isWorkletizableModule(
   source: string,
   workletizableModules?: string[]
 ): boolean {
-  if (
-    source === alwaysAllowedPackages ||
-    source.startsWith(alwaysAllowedPackages + '/')
-  ) {
-    return true;
-  }
   return !!workletizableModules?.some((module) =>
     matchesSourcePackage(source, module)
   );
@@ -123,6 +114,3 @@ export function createImportPathLiteral(
   const resolved = resolve(dirname(state.file.opts.filename!), originalPath);
   return stringLiteral(relative(generatedWorkletsDirPath, resolved));
 }
-
-const alwaysAllowedPaths = ['react-native-worklets'];
-const alwaysAllowedPackages = 'react-native/Libraries/Core/setUpXHR';
